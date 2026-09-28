@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Рациональные точки на кониках</title>
+<meta name="description" content="Метод секущих на кониках, сложение точек на кубиках, целые треугольники и генератор задач для урока.">
+<style>
+  :root {
+    --bg: #fbfaf7; --panel: #ffffff; --ink: #1d1d1f; --muted: #6b6b70;
+    --line: #d9d6cf; --accent: #b4442c; --accent2: #2b5c8a; --grid: #eeebe4;
+    --curve: #1d1d1f; --ok: #2f7d4f; --fill: #f3e6e1;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17171a; --panel: #202024; --ink: #ececef; --muted: #9a9aa2;
+      --line: #3a3a40; --accent: #f08a6c; --accent2: #7fb2e5; --grid: #26262b;
+      --curve: #ececef; --ok: #6fcf97; --fill: #3a2a26;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17171a; --panel: #202024; --ink: #ececef; --muted: #9a9aa2;
+    --line: #3a3a40; --accent: #f08a6c; --accent2: #7fb2e5; --grid: #26262b;
+    --curve: #ececef; --ok: #6fcf97; --fill: #3a2a26;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.5 Georgia, "Times New Roman", serif; }
+  header, main { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
+  header { padding-top: 24px; }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; font-weight: normal; }
+  h2 { font-size: 1.15rem; font-weight: normal; margin: 0 0 8px; }
+  .sub { color: var(--muted); margin: 0 0 16px; }
+  nav { display: flex; gap: 4px 14px; border-bottom: 1px solid var(--line); margin-bottom: 16px;
+    overflow-x: auto; scrollbar-width: none; }
+  nav button { background: none; border: 0; border-bottom: 2px solid transparent; white-space: nowrap;
+    color: var(--muted); font: inherit; padding: 8px 2px; cursor: pointer; }
+  nav button[aria-selected="true"] { color: var(--ink); border-color: var(--accent); }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; }
+  @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
+  canvas { width: 100%; aspect-ratio: 1 / 1; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 6px; display: block; touch-action: none; }
+  canvas.wide { aspect-ratio: 2 / 1; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px; }
+  .panel + .panel, canvas + .panel, canvas + canvas { margin-top: 12px; }
+  label { display: block; font-size: .9rem; color: var(--muted); margin: 8px 0 4px; }
+  label.inline { display: flex; gap: 6px; align-items: center; color: var(--ink); font-size: .95rem; margin: 4px 0; }
+  select, input { font: inherit; color: var(--ink); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 4px; padding: 4px 6px; }
+  select { width: 100%; }
+  input[type=range] { width: 100%; padding: 0; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .row input[type=number] { width: 5.5em; }
+  button.act { font: inherit; background: var(--bg); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 4px; padding: 5px 10px; cursor: pointer; }
+  button.act:hover { border-color: var(--accent); }
+  button.main { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .88rem;
+    overflow-wrap: anywhere; }
+  .note { color: var(--muted); font-size: .92rem; }
+  .ok { color: var(--ok); }
+  table { border-collapse: collapse; width: 100%; }
+  td, th { text-align: left; padding: 3px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-weight: normal; color: var(--muted); font-size: .85rem; }
+  .hidden { display: none !important; }
+  .scroll { max-height: 420px; overflow: auto; }
+  .tri-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px; }
+  .tri-list button { font: inherit; text-align: left; padding: 6px 8px; cursor: pointer;
+    background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 4px; }
+  .tri-list button[aria-pressed="true"] { border-color: var(--accent); background: var(--fill); }
+  .tri-list small { display: block; color: var(--muted); }
+  svg.tri { width: 100%; height: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; display: block; }
+  .checks { columns: 2 220px; }
+  .sheet { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 20px 24px; margin-bottom: 16px; }
+  .sheet h3 { margin: 0 0 4px; font-weight: normal; font-size: 1.15rem; }
+  .sheet ol { padding-left: 1.4em; margin: 10px 0 0; }
+  .sheet li { margin: 0 0 10px; }
+  .sheet .field { color: var(--muted); font-size: .9rem; }
+  .answers li { margin-bottom: 4px; }
+  footer { max-width: 1100px; margin: 24px auto; padding: 0 16px; color: var(--muted); font-size: .85rem; }
+  a { color: var(--accent2); }
+  @media print {
+    body { background: #fff; color: #000; font-size: 13pt; }
+    header, nav, footer, .no-print, section:not(#tab-sheet) { display: none !important; }
+    #tab-sheet { display: block !important; }
+    .sheet { border: 0; padding: 0; page-break-after: always; }
+    .sheet .field, .note { color: #444; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Рациональные точки на кониках</h1>
+  <p class="sub">Метод секущих, пифагоровы тройки и целые треугольники. Все дроби считаются точно, без округления.</p>
+  <nav role="tablist">
+    <button role="tab" aria-selected="true" data-tab="conics">Секущие</button>
+    <button role="tab" aria-selected="false" data-tab="tri">Целые треугольники</button>
+    <button role="tab" aria-selected="false" data-tab="sheet">Задачи для урока</button>
+    <button role="tab" aria-selected="false" data-tab="cubics">Кубики</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ============================================================ секущие -->
+  <section id="tab-conics" class="layout">
+    <canvas id="cv1" width="800" height="800" aria-label="Чертёж коники и секущей"></canvas>
+    <div>
+      <div class="panel">
+        <label for="conic">Кривая</label>
+        <select id="conic"></select>
+        <p class="note" id="conicNote"></p>
+        <div id="secantCtl">
+          <label>Угловой коэффициент секущей t = p / q</label>
+          <div class="row">
+            <input type="number" id="tp" value="1" step="1" aria-label="p">
+            <span>/</span>
+            <input type="number" id="tq" value="2" min="1" step="1" aria-label="q">
+            <button class="act" id="vert" title="Вертикальная прямая">t = ∞</button>
+          </div>
+          <p class="note">Или коснитесь чертежа: секущая пройдёт через ближайшую точку с простой дробью t.</p>
+          <div class="row" style="margin-top:8px">
+            <button class="act main" id="play">▶ Запустить секущие</button>
+            <button class="act" id="clear">Очистить</button>
+          </div>
+          <label for="speed">Скорость</label>
+          <input type="range" id="speed" min="1" max="40" value="8">
+        </div>
+        <div id="searchCtl" class="hidden">
+          <div class="row" style="margin-top:8px">
+            <label for="H" style="margin:0">Искать X² + Y² = 3Z² при Z ≤</label>
+            <input type="number" id="H" value="300" min="1" max="5000">
+            <button class="act" id="search">Искать</button>
+          </div>
+        </div>
+      </div>
+      <div class="panel" id="out1"></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ треугольники -->
+  <section id="tab-tri" class="layout hidden">
+    <div>
+      <svg class="tri" id="triSvg" viewBox="0 0 400 300" role="img" aria-label="Выбранный треугольник"></svg>
+      <canvas id="cv3" width="800" height="800" aria-label="Точка на конике, соответствующая треугольнику"></canvas>
+    </div>
+    <div>
+      <div class="panel">
+        <label for="kind">Какие треугольники</label>
+        <select id="kind">
+          <option value="right">прямоугольные (пифагоровы тройки)</option>
+          <option value="deg120">с углом 120°</option>
+          <option value="deg60">с углом 60°</option>
+          <option value="heron">героновы (целая площадь)</option>
+        </select>
+        <div class="row" style="margin-top:8px">
+          <label for="triN" style="margin:0">Стороны не больше</label>
+          <input type="number" id="triN" value="100" min="5" max="1000">
+        </div>
+        <label class="inline"><input type="checkbox" id="prim" checked> только несократимые (НОД сторон 1)</label>
+        <p class="note" id="triCount"></p>
+      </div>
+      <div class="panel" id="triInfo"></div>
+      <div class="panel scroll"><div class="tri-list" id="triList"></div></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ задачи -->
+  <section id="tab-sheet">
+    <div class="panel no-print">
+      <h2>Самостоятельная работа по вариантам</h2>
+      <p class="note">Все ответы целые или с половиной: числа подобраны через пифагоровы и эйзенштейновы тройки. Один и тот же номер набора всегда даёт одни и те же задачи.</p>
+      <div class="checks" id="taskTypes"></div>
+      <div class="row" style="margin-top:10px">
+        <label for="vars" style="margin:0">Вариантов</label>
+        <input type="number" id="vars" value="2" min="1" max="6">
+        <label for="lvl" style="margin:0">Числа</label>
+        <select id="lvl" style="width:auto">
+          <option value="30">до 30</option>
+          <option value="100" selected>до 100</option>
+          <option value="300">до 300</option>
+        </select>
+        <label for="seed" style="margin:0">Набор №</label>
+        <input type="number" id="seed" value="1" min="1">
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="act" id="reroll">Другие числа</button>
+        <label class="inline"><input type="checkbox" id="showAns"> показать ответы</label>
+        <button class="act main" id="print">Печать</button>
+      </div>
+    </div>
+    <div id="sheets" style="margin-top:12px"></div>
+  </section>
+
+  <!-- ============================================================ кубики -->
+  <section id="tab-cubics" class="layout hidden">
+    <div>
+      <canvas id="cv2" width="800" height="800" aria-label="Чертёж кубики и её точек"></canvas>
+      <canvas id="cvH" class="wide" width="800" height="400" aria-label="Рост числа цифр в знаменателе"></canvas>
+    </div>
+    <div>
+      <div class="panel">
+        <label for="cubic">Кривая</label>
+        <select id="cubic"></select>
+        <p class="note" id="cubicNote"></p>
+        <label for="n">Сколько кратных nP вычислить (до 200)</label>
+        <div class="row">
+          <input type="number" id="n" value="6" min="1" max="200">
+          <button class="act" id="step">+1</button>
+          <button class="act" id="step10">+10</button>
+        </div>
+      </div>
+      <div class="panel scroll" id="out2"></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  Исходный код: <a href="https://github.com/mvbulgakova/kursovaya_mat_2026">github.com/mvbulgakova/kursovaya_mat_2026</a>
+</footer>
+
+<script src="core.js"></script>
+<script>
+'use strict';
+const { Q, CONICS, CUBICS, secondPoint, slopes, approx, tripleFromPoint, multiples, multiplesFast,
+  triangles, heronTriangles, TASKS, worksheet } = RP;
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+function digits(b) { return (b < 0n ? -b : b).toString().length; }
+function fmt(q, max = 60) {
+  const s = q.toString();
+  if (s.length <= max) return s;
+  return `≈ ${q.toNumber().toPrecision(6)} <span class="note">(${digits(q.n)} и ${digits(q.d)} цифр)</span>`;
+}
+
+// ------------------------------------------------------------ чертёж
+function View(canvas, span, cx = 0, cy = 0) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const v = {
+    ctx, W, H, span, cx, cy,
+    X: x => W / 2 + (x - v.cx) / v.span * W / 2,
+    Y: y => H / 2 - (y - v.cy) / v.span * H / 2,
+    inv(px, py) { return [v.cx + (px - W / 2) / (W / 2) * v.span, v.cy - (py - H / 2) / (H / 2) * v.span]; },
+    axes() {
+      ctx.fillStyle = css('--panel'); ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = css('--grid'); ctx.lineWidth = 1;
+      const step = v.span > 4 ? 1 : 0.5;
+      for (let g = Math.ceil((v.cx - v.span) / step) * step; g <= v.cx + v.span; g += step) {
+        ctx.beginPath(); ctx.moveTo(v.X(g), 0); ctx.lineTo(v.X(g), H); ctx.stroke();
+      }
+      for (let g = Math.ceil((v.cy - v.span) / step) * step; g <= v.cy + v.span; g += step) {
+        ctx.beginPath(); ctx.moveTo(0, v.Y(g)); ctx.lineTo(W, v.Y(g)); ctx.stroke();
+      }
+      ctx.strokeStyle = css('--muted'); ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(0, v.Y(0)); ctx.lineTo(W, v.Y(0));
+      ctx.moveTo(v.X(0), 0); ctx.lineTo(v.X(0), H); ctx.stroke();
+    },
+    // линия уровня F = 0 (марширующие квадраты)
+    curve(F, color, width = 2.5) {
+      const N = 320, dx = 2 * v.span / N;
+      ctx.strokeStyle = color; ctx.lineWidth = width; ctx.beginPath();
+      const val = [];
+      for (let i = 0; i <= N; i++) { val.push([]); for (let j = 0; j <= N; j++)
+        val[i].push(F(v.cx - v.span + i * dx, v.cy - v.span + j * dx)); }
+      const lerp = (a, b) => a / (a - b);
+      for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+        const x = v.cx - v.span + i * dx, y = v.cy - v.span + j * dx;
+        const c = [val[i][j], val[i + 1][j], val[i + 1][j + 1], val[i][j + 1]];
+        const pts = [];
+        const e = [[0, 1, s => [x + s * dx, y]], [1, 2, s => [x + dx, y + s * dx]],
+                   [3, 2, s => [x + s * dx, y + dx]], [0, 3, s => [x, y + s * dx]]];
+        for (const [a, b, p] of e) if ((c[a] > 0) !== (c[b] > 0)) pts.push(p(lerp(c[a], c[b])));
+        for (let k = 0; k + 1 < pts.length; k += 2) {
+          ctx.moveTo(v.X(pts[k][0]), v.Y(pts[k][1])); ctx.lineTo(v.X(pts[k + 1][0]), v.Y(pts[k + 1][1]));
+        }
+      }
+      ctx.stroke();
+    },
+    line(x0, y0, t, color, dash = []) {
+      ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.setLineDash(dash); ctx.beginPath();
+      if (t === null) { ctx.moveTo(v.X(x0), 0); ctx.lineTo(v.X(x0), H); }
+      else { const L = 3 * v.span; ctx.moveTo(v.X(x0 - L), v.Y(y0 - t * L)); ctx.lineTo(v.X(x0 + L), v.Y(y0 + t * L)); }
+      ctx.stroke(); ctx.setLineDash([]);
+    },
+    dot(x, y, color, r = 5, label) {
+      ctx.fillStyle = color; ctx.beginPath(); ctx.arc(v.X(x), v.Y(y), r, 0, 7); ctx.fill();
+      if (label) { ctx.font = '24px Georgia, serif'; ctx.fillStyle = css('--ink');
+        ctx.fillText(label, v.X(x) + 8, v.Y(y) - 8); }
+    },
+  };
+  return v;
+}
+function canvasPoint(v, e) {
+  const r = e.target.getBoundingClientRect();
+  return v.inv((e.clientX - r.left) / r.width * v.W, (e.clientY - r.top) / r.height * v.H);
+}
+
+// ------------------------------------------------------------ секущие
+const v1 = View($('cv1'), 2.2);
+let C = CONICS[0], T = new Q(1, 2), cloud = [], timer = null, queue = [];
+CONICS.forEach((c, i) => $('conic').add(new Option(c.name, i)));
+
+// все дроби p/q в порядке роста знаменателя: сначала простые, потом сложнее
+function slopeQueue() {
+  const all = slopes(40).filter(t => Math.abs(t.toNumber()) <= 8);
+  all.sort((u, v) => (Number(u.d) + Math.abs(Number(u.n))) - (Number(v.d) + Math.abs(Number(v.n))));
+  return [null, ...all];
+}
+
+function drawConic() {
+  v1.span = C.P0 ? 2.2 : 2.4;
+  v1.axes();
+  v1.curve((x, y) => C.Ff(x, y), css('--curve'));
+  for (const p of cloud) v1.dot(p.x.toNumber(), p.y.toNumber(), css('--accent2'), 3);
+  if (!C.P0) return;
+  const [x0, y0] = C.P0.map(q => q.toNumber());
+  const P = secondPoint(C, T);
+  v1.line(x0, y0, T === null ? null : T.toNumber(), css('--accent'));
+  v1.dot(x0, y0, css('--ink'), 6, 'A');
+  if (!P.infinite) v1.dot(P.x.toNumber(), P.y.toNumber(), css('--accent'), 7, 'M');
+}
+
+function reportConic() {
+  const out = $('out1');
+  if (!C.P0) { out.innerHTML = searchHTML ?? '<p class="note">Нажмите «Искать», чтобы перебрать все точки X/Z, Y/Z со знаменателем до заданного.</p>'; return; }
+  const P = secondPoint(C, T);
+  const tStr = T === null ? '∞ (вертикальная прямая)' : T.toString();
+  let h = `<table><tr><th>t</th><td class="mono">${tStr}</td></tr>`;
+  if (P.infinite) {
+    h += `<tr><th>M</th><td>Прямая параллельна асимптоте: вторая точка пересечения бесконечно удалена.</td></tr></table>`;
+  } else {
+    h += `<tr><th>x</th><td class="mono">${fmt(P.x)}</td></tr><tr><th>y</th><td class="mono">${fmt(P.y)}</td></tr>`;
+    h += `<tr><th>проверка</th><td class="ok">точка лежит на кривой (подстановка даёт ровно 0)</td></tr></table>`;
+    if (P.tangent) h += `<p class="note">Прямая касается кривой в точке A: вторая точка совпадает с A.</p>`;
+    if (C === CONICS[0] && !P.tangent && !P.x.isZero() && !P.y.isZero()) {
+      const [a, b, c] = tripleFromPoint(P.x, P.y);
+      h += `<p>Пифагорова тройка: <b>${a}² + ${b}² = ${c}²</b></p>`;
+    }
+    if (C === CONICS[3] && !P.tangent && !P.x.isZero() && !P.y.isZero()) {
+      const [a, b, c] = tripleFromPoint(P.x, P.y);
+      const s = P.x.toNumber() * P.y.toNumber() > 0 ? 120 : 60;
+      h += `<p>Треугольник со сторонами <b>${a}, ${b}, ${c}</b> и углом ${s}° между первыми двумя.</p>`;
+    }
+  }
+  if (cloud.length) h += `<p class="note">Найдено точек: ${cloud.length}. Каждая получена одной секущей через A и проверена подстановкой.</p>`;
+  out.innerHTML = h;
+}
+
+let searchHTML = null;
+function refreshConic() {
+  const hasP = !!C.P0;
+  $('secantCtl').classList.toggle('hidden', !hasP);
+  $('searchCtl').classList.toggle('hidden', hasP);
+  $('conicNote').textContent = C.note;
+  drawConic(); reportConic();
+}
+function setT(t) { T = t; if (t) { $('tp').value = String(t.n); $('tq').value = String(t.d); } refreshConic(); }
+function stop() { clearTimeout(timer); timer = null; $('play').textContent = '▶ Запустить секущие'; }
+function tick() {
+  if (!queue.length) { stop(); return; }
+  const t = queue.shift();
+  const P = secondPoint(C, t);
+  if (!P.infinite && !P.tangent) cloud.push(P);
+  setT(t);
+  timer = setTimeout(tick, 1000 / +$('speed').value);
+}
+$('play').onclick = () => {
+  if (timer) { stop(); return; }
+  if (!queue.length) { cloud = []; queue = slopeQueue(); }
+  $('play').textContent = '❚❚ Пауза';
+  tick();
+};
+$('conic').onchange = e => { stop(); queue = []; C = CONICS[+e.target.value]; cloud = []; searchHTML = null; setT(new Q(1, 2)); };
+$('tp').oninput = $('tq').oninput = () => {
+  const p = parseInt($('tp').value, 10), q = parseInt($('tq').value, 10);
+  if (Number.isFinite(p) && Number.isFinite(q) && q > 0) { T = new Q(p, q); refreshConic(); }
+};
+$('vert').onclick = () => { T = null; refreshConic(); };
+$('clear').onclick = () => { stop(); queue = []; cloud = []; refreshConic(); };
+$('cv1').addEventListener('pointerdown', e => {
+  if (!C.P0) return;
+  const [x, y] = canvasPoint(v1, e);
+  const [x0, y0] = C.P0.map(q => q.toNumber());
+  if (Math.abs(x - x0) < 1e-3) { setT(null); return; }
+  setT(approx((y - y0) / (x - x0), 30));
+});
+$('search').onclick = () => {
+  const H = Math.min(5000, Math.max(1, parseInt($('H').value, 10) || 1));
+  let tried = 0, found = [];
+  for (let Z = 1; Z <= H; Z++) for (let X = 0; X * X <= 3 * Z * Z; X++) {
+    const r = 3 * Z * Z - X * X, Y = Math.round(Math.sqrt(r)); tried++;
+    if (Y * Y === r) found.push([X, Y, Z]);
+  }
+  searchHTML = `<p>Перебрано ${tried.toLocaleString('ru')} пар (X, Z) с 1 ≤ Z ≤ ${H}.</p>` +
+    (found.length ? `<p>Найдено: ${esc(JSON.stringify(found.slice(0, 5)))}</p>`
+      : `<p class="ok">Ни одного решения X² + Y² = 3Z²: рациональных точек нет.</p>
+         <p class="note">Перебор только иллюстрирует теорему. Доказательство — по модулю 3: квадрат при делении на 3 даёт остаток 0 или 1, поэтому X² + Y² делится на 3 лишь когда X и Y делятся на 3, а тогда и Z делится на 3.</p>`);
+  reportConic();
+};
+
+// ------------------------------------------------------------ треугольники
+const v3 = View($('cv3'), 1.4, 0, 0.3);
+let triSel = null, triData = [];
+const triConic = { right: CONICS[0], deg120: CONICS[3],
+  deg60: { name: 'x² − xy + y² = 1', Ff: (x, y) => x * x - x * y + y * y - 1, P0: [new Q(1), new Q(0)] } };
+
+function refreshTri() {
+  const kind = $('kind').value;
+  const maxN = kind === 'heron' ? 150 : 1000;
+  $('triN').max = maxN;
+  const N = Math.min(maxN, Math.max(5, parseInt($('triN').value, 10) || 5));
+  const prim = $('prim').checked;
+  triData = kind === 'heron' ? heronTriangles(N, prim) : triangles(kind, N, prim);
+  $('triCount').textContent = `Найдено: ${triData.length}` + (kind === 'heron' && N === 150 ? ' (для героновых стороны до 150)' : '');
+  const shown = triData.slice(0, 400);
+  $('triList').innerHTML = shown.map((t, i) =>
+    `<button data-i="${i}" aria-pressed="false">${t.a}, ${t.b}, ${t.c}<small>${t.S !== undefined ? 'S = ' + t.S : 't = ' + t.t}</small></button>`).join('')
+    + (triData.length > shown.length ? `<p class="note">…и ещё ${triData.length - shown.length}</p>` : '');
+  selectTri(triData.length ? 0 : -1);
+}
+function selectTri(i) {
+  triSel = i >= 0 ? triData[i] : null;
+  document.querySelectorAll('#triList button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.i === i));
+  drawTri(); drawTriConic(); infoTri();
+}
+
+function drawTri() {
+  const svg = $('triSvg'), t = triSel;
+  if (!t) { svg.innerHTML = ''; return; }
+  // вершины: C в начале, CA = b вдоль оси, CB = a под нужным углом; для героновых — основание c
+  let P;
+  if (t.kind === 'heron') {
+    const x = (t.b * t.b - t.a * t.a + t.c * t.c) / (2 * t.c), h = 2 * t.S / t.c;
+    P = [[0, 0], [t.c, 0], [x, h]];
+  } else {
+    const ang = { right: 90, deg120: 120, deg60: 60 }[t.kind] * Math.PI / 180;
+    P = [[0, 0], [t.b, 0], [t.a * Math.cos(ang), t.a * Math.sin(ang)]];
+  }
+  const xs = P.map(p => p[0]), ys = P.map(p => p[1]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs), maxY = Math.max(...ys);
+  const s = Math.min(320 / (maxX - minX), 210 / maxY);
+  const X = x => 40 + (x - minX) * s + (320 - (maxX - minX) * s) / 2, Y = y => 260 - y * s;
+  const pts = P.map(p => `${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(' ');
+  const mid = (i, j, dy = 0) => [(X(P[i][0]) + X(P[j][0])) / 2, (Y(P[i][1]) + Y(P[j][1])) / 2 + dy];
+  const lab = ([x, y], text, anchor = 'middle') =>
+    `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="${anchor}" font-size="17" fill="${css('--ink')}" font-family="Georgia">${text}</text>`;
+  let extra = '';
+  if (t.kind === 'heron') {
+    extra = `<line x1="${X(P[2][0])}" y1="${Y(P[2][1])}" x2="${X(P[2][0])}" y2="${Y(0)}" stroke="${css('--accent2')}" stroke-dasharray="5 4"/>`
+      + (X(P[2][0]) > (X(0) + X(t.c)) / 2
+        ? lab([X(P[2][0]) - 8, Y(0) - 10], 'h = ' + fracStr(2 * t.S, t.c), 'end')
+        : lab([X(P[2][0]) + 8, Y(0) - 10], 'h = ' + fracStr(2 * t.S, t.c), 'start'));
+  } else {
+    const [cx, cy] = [X(0), Y(0)], r = 26;
+    const ang = { right: 90, deg120: 120, deg60: 60 }[t.kind];
+    if (ang === 90) extra = `<path d="M${cx + 16} ${cy} L${cx + 16} ${cy - 16} L${cx} ${cy - 16}" fill="none" stroke="${css('--accent')}"/>`;
+    else {
+      const ex = cx + r * Math.cos(ang * Math.PI / 180), ey = cy - r * Math.sin(ang * Math.PI / 180);
+      extra = `<path d="M${cx + r} ${cy} A${r} ${r} 0 0 0 ${ex.toFixed(1)} ${ey.toFixed(1)}" fill="none" stroke="${css('--accent')}"/>`
+        + lab([cx + 10, cy - 30], ang + '°', 'start');
+    }
+  }
+  const [lc, la, lb] = t.kind === 'heron' ? [t.c, t.b, t.a] : [t.b, t.a, t.c];
+  svg.innerHTML = `<polygon points="${pts}" fill="${css('--fill')}" stroke="${css('--ink')}" stroke-width="2"/>` + extra
+    + lab(mid(0, 1, 22), lc) + lab(mid(0, 2, 0).map((v, k) => k ? v : v - 14), la, 'end') + lab(mid(1, 2, 0).map((v, k) => k ? v : v + 10), lb, 'start');
+}
+function fracStr(n, d) { const q = new Q(n, d); return q.toString(); }
+
+function drawTriConic() {
+  const t = triSel, cv = $('cv3');
+  cv.classList.toggle('hidden', !t || t.kind === 'heron');
+  if (!t || t.kind === 'heron') return;
+  const K = triConic[t.kind];
+  v3.axes(); v3.curve(K.Ff, css('--curve'));
+  const [x0, y0] = K.P0.map(q => q.toNumber());
+  v3.line(x0, y0, t.t.toNumber(), css('--accent'));
+  v3.dot(x0, y0, css('--ink'), 6, 'A');
+  v3.dot(t.a / t.c, t.b / t.c, css('--accent'), 7, `(${t.a}/${t.c}; ${t.b}/${t.c})`);
+}
+
+function infoTri() {
+  const t = triSel, box = $('triInfo');
+  if (!t) { box.innerHTML = '<p class="note">Ничего не найдено — увеличьте границу.</p>'; return; }
+  const k = t.g > 1 ? `<p class="note">Это увеличенный в ${t.g} раза треугольник ${t.a / t.g}, ${t.b / t.g}, ${t.c / t.g}.</p>` : '';
+  const html = {
+    right: () => `<h2>${t.a}² + ${t.b}² = ${t.c}²</h2>
+      <p>Точка (${t.a}/${t.c}; ${t.b}/${t.c}) лежит на окружности x² + y² = 1. Её даёт секущая через A(−1; 0) с угловым коэффициентом <b>t = ${t.t}</b>.</p>`,
+    deg120: () => `<h2>${t.a}² + ${t.a}·${t.b} + ${t.b}² = ${t.c}²</h2>
+      <p>По теореме косинусов угол между сторонами ${t.a} и ${t.b} равен 120°. Точка (${t.a}/${t.c}; ${t.b}/${t.c}) лежит на эллипсе x² + xy + y² = 1, секущая через (1; 0) имеет <b>t = ${t.t}</b>.</p>`,
+    deg60: () => `<h2>${t.a}² − ${t.a}·${t.b} + ${t.b}² = ${t.c}²</h2>
+      <p>Угол между сторонами ${t.a} и ${t.b} равен 60°. Точка (${t.a}/${t.c}; ${t.b}/${t.c}) лежит на эллипсе x² − xy + y² = 1, секущая через (1; 0) имеет <b>t = ${t.t}</b>.</p>`,
+    heron: () => `<h2>Стороны ${t.a}, ${t.b}, ${t.c}; площадь ${t.S}</h2>
+      <p>Высота к стороне ${t.c} равна ${fracStr(2 * t.S, t.c)} и делит треугольник на два прямоугольных с рациональными сторонами — каждый из них получается методом секущих на окружности.</p>
+      ${t.right ? '<p class="note">Этот треугольник сам прямоугольный.</p>' : ''}`,
+  }[t.kind]();
+  box.innerHTML = html + k;
+}
+$('kind').onchange = () => { if ($('kind').value === 'heron' && +$('triN').value > 150) $('triN').value = 60; refreshTri(); };
+$('triN').onchange = $('prim').onchange = refreshTri;
+$('triList').onclick = e => { const b = e.target.closest('button'); if (b) selectTri(+b.dataset.i); };
+
+// ------------------------------------------------------------ задачи для урока
+const defaultTasks = ['hyp', 'leg', 'dist', 'cos120', 'heron'];
+$('taskTypes').innerHTML = Object.entries(TASKS).map(([k, d]) =>
+  `<label class="inline"><input type="checkbox" value="${k}" ${defaultTasks.includes(k) ? 'checked' : ''}> ${d.title}</label>`).join('');
+function refreshSheet() {
+  const types = [...document.querySelectorAll('#taskTypes input:checked')].map(i => i.value);
+  const V = Math.min(6, Math.max(1, parseInt($('vars').value, 10) || 1));
+  const seed = Math.max(1, parseInt($('seed').value, 10) || 1);
+  const W = worksheet(types, V, +$('lvl').value, seed);
+  if (!types.length) { $('sheets').innerHTML = '<p class="note">Отметьте хотя бы один тип задач.</p>'; return; }
+  let h = W.map((w, i) => `<div class="sheet"><h3>Вариант ${i + 1}</h3>
+      <div class="field">Фамилия, имя ______________________ Класс ______ Дата ________</div>
+      <ol>${w.tasks.map(t => `<li>${esc(t.q)}</li>`).join('')}</ol></div>`).join('');
+  if ($('showAns').checked)
+    h += `<div class="sheet answers"><h3>Ответы (набор № ${seed})</h3>` + W.map((w, i) =>
+      `<p><b>Вариант ${i + 1}</b></p><ol>${w.tasks.map(t => `<li>${esc(t.ans)}</li>`).join('')}</ol>`).join('') + '</div>';
+  $('sheets').innerHTML = h;
+}
+$('taskTypes').onchange = $('vars').oninput = $('lvl').onchange = $('seed').oninput = $('showAns').onchange = refreshSheet;
+$('reroll').onclick = () => { $('seed').value = 1 + Math.floor(Math.random() * 9999); refreshSheet(); };
+$('print').onclick = () => window.print();
+
+// ------------------------------------------------------------ кубики
+const v2 = View($('cv2'), 3.5, 0.5, 0);
+let E = CUBICS[0], nShow = 6, cache = {};
+CUBICS.forEach((c, i) => $('cubic').add(new Option(c.name, i)));
+
+function getMultiples(n) {
+  const key = E.name;
+  if (!cache[key] || cache[key].length < n) cache[key] = multiplesFast(E, Math.max(n, 20));
+  return cache[key].slice(0, n);
+}
+
+function drawHeights(list) {
+  const cv = $('cvH'), ctx = cv.getContext('2d'), W = cv.width, H = cv.height;
+  ctx.fillStyle = css('--panel'); ctx.fillRect(0, 0, W, H);
+  const vals = list.map(r => r.pt.O ? 0 : r.pt[0].d.toString().length);
+  const maxV = Math.max(1, ...vals), L = 70, B = 50, w = (W - L - 20) / list.length;
+  ctx.strokeStyle = css('--muted'); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(L, 20); ctx.lineTo(L, H - B); ctx.lineTo(W - 10, H - B); ctx.stroke();
+  ctx.fillStyle = css('--accent2');
+  vals.forEach((v, i) => { const h = (H - B - 30) * v / maxV; ctx.fillRect(L + i * w + w * 0.1, H - B - h, Math.max(1, w * 0.8), h); });
+  ctx.fillStyle = css('--ink'); ctx.font = '22px Georgia, serif';
+  ctx.fillText(`цифр в знаменателе x(nP): до ${maxV}`, L + 10, 34);
+  ctx.fillStyle = css('--muted'); ctx.font = '20px Georgia, serif';
+  ctx.fillText('n = 1', L, H - B + 28); ctx.fillText(`n = ${list.length}`, W - 90, H - B + 28);
+}
+
+function refreshCubic() {
+  $('cubicNote').textContent = E.note;
+  const list = getMultiples(nShow);
+  v2.span = E === CUBICS[0] ? 3.6 : 6; v2.cx = E === CUBICS[0] ? 0.6 : 2;
+  v2.axes();
+  v2.curve((x, y) => E.Ff(x, y), css('--curve'));
+  const last = list[list.length - 1], prev = list[list.length - 2];
+  // прямая последнего шага — только пока числа небольшие
+  if (prev && !prev.pt.O && !last.pt.O && prev.pt[0].d.toString().length < 200) {
+    const r = RP.addPoints(E, prev.pt, E.P);
+    if (r.lambda) { const [fx, fy] = prev.pt.map(q => q.toNumber()); v2.line(fx, fy, r.lambda.toNumber(), css('--accent'), [6, 5]); }
+  }
+  for (const r of list) if (!r.pt.O) {
+    const [x, y] = r.pt.map(q => q.toNumber());
+    if (Math.abs(x - v2.cx) < v2.span && Math.abs(y - v2.cy) < v2.span)
+      v2.dot(x, y, r === last ? css('--accent') : css('--accent2'), 5, list.length <= 12 ? (r.k === 1 ? 'P' : r.k + 'P') : '');
+  }
+  drawHeights(list);
+  let h = '<table><tr><th>n</th><th>nP</th></tr>';
+  for (const r of list) {
+    const ptStr = r.pt.O ? 'O (бесконечно удалённая точка)' : `(${fmt(r.pt[0], 40)}; ${fmt(r.pt[1], 40)})`;
+    h += `<tr><td>${r.k}</td><td class="mono">${ptStr}</td></tr>`;
+  }
+  h += '</table>';
+  const ord = list.find(r => r.pt.O);
+  h += ord ? `<p>Порядок точки P равен <b>${ord.k}</b>: подгруппа ⟨P⟩ конечна. Для коники так не бывает (следствие 2.6).</p>`
+    : `<p class="note">nP ≠ O при n ≤ ${nShow}. Число цифр растёт примерно как n², поэтому точки быстро «убегают» и перестают помещаться на чертеже.</p>`;
+  $('out2').innerHTML = h;
+}
+function setN(n) { nShow = Math.min(200, Math.max(1, n)); $('n').value = nShow; refreshCubic(); }
+$('cubic').onchange = e => { E = CUBICS[+e.target.value]; refreshCubic(); };
+$('n').onchange = () => setN(parseInt($('n').value, 10) || 1);
+$('step').onclick = () => setN(nShow + 1);
+$('step10').onclick = () => setN(nShow + 10);
+
+// ------------------------------------------------------------ вкладки
+const refreshers = { conics: refreshConic, tri: refreshTri, sheet: refreshSheet, cubics: refreshCubic };
+function showTab(name) {
+  document.querySelectorAll('nav button').forEach(x => x.setAttribute('aria-selected', x.dataset.tab === name));
+  for (const k in refreshers) $('tab-' + k).classList.toggle('hidden', k !== name);
+  refreshers[name]();
+  try { history.replaceState(null, '', '#' + name); } catch (e) { /* file:// */ }
+}
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => showTab(location.hash.slice(1) || 'conics'));
+showTab(refreshers[location.hash.slice(1)] ? location.hash.slice(1) : 'conics');
+</script>
+</body>
+</html>

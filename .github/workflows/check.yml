@@ -1,0 +1,31 @@
+name: Проверка и сборка PDF
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    name: Проверка вычислений модели
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node model/test/verify.js
+
+  pdf:
+    name: Сборка курсовой (pdfLaTeX)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: xu-cheng/latex-action@v3
+        with:
+          working_directory: tex
+          root_file: main.tex
+          latexmk_use_pdflatex: true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kursovaya-pdf
+          path: tex/main.pdf
