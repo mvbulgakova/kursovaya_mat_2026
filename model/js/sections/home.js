@@ -14,7 +14,7 @@ const CARDS = [
   ['cubics', 'Кубики', null, 'Кривые третьего порядка: хорды, касательные, кратные точки и рост знаменателей.'],
 ];
 
-const READY = ['secants', 'triangles', 'trainer', 'cubics'];
+const READY = ['secants', 'triangles', 'trainer', 'sphere', 'cubics'];
 
 export default {
   id: 'home',

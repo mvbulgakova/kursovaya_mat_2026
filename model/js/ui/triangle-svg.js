@@ -101,6 +101,6 @@ export function boxSVG(a, b, c, opt = {}) {
   const t = (p, text, dx2 = 0, dy2 = 0) => text == null ? '' : `<text x="${p[0] + dx2}" y="${p[1] + dy2}" font-size="16" text-anchor="middle" fill="${ink}" font-family="Georgia, serif">${text}</text>`;
   const mid = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
   g += t(mid(V['000'], V['100']), 'a' in L ? L.a : a, 0, 20) + t(mid(V['100'], V['101']), 'b' in L ? L.b : b, 18, 10)
-    + t(mid(V['000'], V['010']), 'c' in L ? L.c : c, -16, 5) + t(mid(V['000'], V['111']), 'd' in L ? L.d : '', 10, -8);
+    + t(mid(V['000'], V['010']), 'c' in L ? L.c : c, -16, 5) + t(mid(V['000'], V['111']), 'd' in L ? L.d : '', -14, -14);
   return `<svg class="fig" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="параллелепипед">${g}</svg>`;
 }

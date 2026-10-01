@@ -15,6 +15,7 @@ const FILES = [
   'js/tasks.js',
   'js/util.js',
   'js/lib/qrcode.js',
+  'js/lib/gl.js',
   'js/ui/plot2d.js',
   'js/ui/triangle-svg.js',
   'js/sections/home.js',
@@ -22,6 +23,7 @@ const FILES = [
   'js/sections/triangles.js',
   'js/sections/trainer.js',
   'js/sections/cubics.js',
+  'js/sections/sphere.js',
 ];
 
 self.addEventListener('install', e => {

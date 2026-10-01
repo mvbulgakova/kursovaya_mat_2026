@@ -137,6 +137,23 @@ console.log('4. Офлайн');
   await ctx.close();
 }
 
+// 5. 3D-сцена
+console.log('5. 3D-сфера');
+{
+  const p = await page(1200);
+  await p.goto(BASE + '#sphere');
+  await p.waitForTimeout(1500);
+  ok((await p.textContent('[data-id="info"]')).includes('36² + 24² + 23² = 49²'), 'точка (1/2; 1/3) даёт четвёрку 36, 24, 23, 49');
+  ok(await p.evaluate(() => !!document.createElement('canvas').getContext('webgl2')), 'WebGL2 доступен');
+  const box = await p.$('[data-id="cv"]').then(e => e.boundingBox());
+  await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await p.mouse.down(); await p.mouse.move(box.x + box.width / 2 + 120, box.y + box.height / 2 + 40, { steps: 8 }); await p.mouse.up();
+  await p.waitForTimeout(300);
+  await p.screenshot({ path: join(SHOTS, 'sphere-rotated.png') });
+  ok(!p.errors.length, 'нет ошибок в 3D: ' + p.errors.join(' | '));
+  await p.context().close();
+}
+
 await browser.close();
 server.close();
 console.log(`\nПроверок: ${checks}, ошибок: ${failures}`);

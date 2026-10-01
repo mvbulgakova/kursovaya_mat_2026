@@ -309,6 +309,36 @@ function rng(seed) {
 }
 
 
+// ------------------------------------------------------------------
+//  Поверхности второго порядка Ax² + By² + Cz² = 1 и «секущие» в пространстве.
+//  Прямая через рациональную точку P0 и точку плоскости P пересекает
+//  поверхность второй раз в точке P0 + λ(P − P0), λ = −2·B(P0, d) / Q(d), d = P − P0.
+// ------------------------------------------------------------------
+const SURFACES = [
+  { id: 'sphere', name: 'сфера x² + y² + z² = 1', D: [1, 1, 1], P0: [0, 0, 1],
+    plane: (s, t) => [s, t, new Q(0)], planeName: 'плоскость z = 0', sign: '+' },
+  { id: 'hyperboloid', name: 'гиперболоид x² + y² − z² = 1', D: [1, 1, -1], P0: [1, 0, 0],
+    plane: (s, t) => [new Q(0), s, t], planeName: 'плоскость x = 0', sign: '−' },
+].map(S => ({ ...S, P0: S.P0.map(v => new Q(v)), Dq: S.D.map(v => new Q(v)) }));
+
+function surfacePoint(S, s, t) {
+  const P = S.plane(Q.of(s), Q.of(t));
+  const d = P.map((v, i) => v.sub(S.P0[i]));
+  let B = new Q(0), Qd = new Q(0);
+  for (let i = 0; i < 3; i++) { B = B.add(S.Dq[i].mul(S.P0[i]).mul(d[i])); Qd = Qd.add(S.Dq[i].mul(d[i]).mul(d[i])); }
+  if (Qd.isZero()) return { infinite: true, P };
+  const lam = B.mul(-2).div(Qd);
+  return { P, lam, X: S.P0.map((v, i) => v.add(lam.mul(d[i]))) };
+}
+
+/** Целые X, Y, Z, W с X/W, Y/W, Z/W = точке (пифагорова четвёрка для сферы). */
+function integerForm(X) {
+  let W = 1n;
+  for (const v of X) W = W / bgcd(W, v.d) * v.d;
+  return [...X.map(v => v.n * (W / v.d)), W];
+}
+
 export { Q, bgcd, CONICS, CUBICS, O, secondPoint, slopes, approx,
   tripleFromPoint, addPoints, multiples, multiplesFast,
-  KINDS, triangles, heronTriangles, latticePoints, rng, isSquare, gcd };
+  KINDS, triangles, heronTriangles, latticePoints, rng, isSquare, gcd,
+  SURFACES, surfacePoint, integerForm };

@@ -8,10 +8,11 @@ import cubics from './sections/cubics.js';
 
 // разделы, которые грузятся только при первом открытии
 const lazy = {
+  sphere: () => import('./sections/sphere.js'),
 };
 const NAV = [
   ['home', 'Главная'], ['secants', 'Секущие'], ['triangles', 'Целые треугольники'],
-  ['trainer', 'Тренажёр'], ['cubics', 'Кубики', true],
+  ['trainer', 'Тренажёр'], ['sphere', '3D-сфера'], ['cubics', 'Кубики', true],
 ];
 const loaded = { home, secants, triangles, trainer, cubics };
 // служебные адреса тренажёра ведут в тот же раздел
