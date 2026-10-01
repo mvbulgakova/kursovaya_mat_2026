@@ -50,6 +50,7 @@ for (const level of ['school', 'uni']) for (const width of [1200, 390]) {
   ok(links.includes('cubics') === (level === 'uni'), `«Кубики» видны только в режиме «Вуз» (${level})`);
   for (const id of links) {
     await p.goto(BASE + '#' + id);
+    await p.waitForFunction(() => !document.getElementById('view').textContent.includes('Загрузка'));
     await p.waitForTimeout(250);
     const text = await p.textContent('#view');
     ok(text.trim().length > 50, `${id} (${level}, ${width}px) отрисован`);
@@ -142,7 +143,8 @@ console.log('5. 3D-сфера');
 {
   const p = await page(1200);
   await p.goto(BASE + '#sphere');
-  await p.waitForTimeout(1500);
+  await p.waitForSelector('[data-id="info"] h3');
+  await p.waitForTimeout(1000);
   ok((await p.textContent('[data-id="info"]')).includes('36² + 24² + 23² = 49²'), 'точка (1/2; 1/3) даёт четвёрку 36, 24, 23, 49');
   ok(await p.evaluate(() => !!document.createElement('canvas').getContext('webgl2')), 'WebGL2 доступен');
   const box = await p.$('[data-id="cv"]').then(e => e.boundingBox());
@@ -159,25 +161,32 @@ console.log('6. Игра');
 {
   const p = await page(1200);
   await p.goto(BASE + '#game');
+  await p.waitForSelector('.hero a');
   ok((await p.$$('.hero a[aria-disabled]')).length > 0, 'дальние уровни закрыты');
   await p.goto(BASE + '#game/arc1');
+  await p.waitForSelector('[data-id="shoot"]');
   await p.fill('[data-id="p"]', '1'); await p.fill('[data-id="q"]', '2');
   await p.click('[data-id="shoot"]'); await p.waitForTimeout(800);
   ok((await p.textContent('[data-id="msg"]')).includes('Попадание'), 't = 1/2 попадает в первую дугу');
   ok((await p.textContent('[data-id="winStars"]')) === '★★★', 'три звезды');
   await p.screenshot({ path: join(SHOTS, 'game-arc.png') });
   await p.goto(BASE + '#game/tri25');
+  await p.waitForSelector('[data-id="add"]');
   for (const [a, b] of [[7, 24], [20, 15]]) { await p.fill('[data-id="a"]', String(a)); await p.fill('[data-id="b"]', String(b)); await p.click('[data-id="add"]'); }
   ok((await p.textContent('[data-id="found"]')).includes('Найдено 2 из 2'), 'оба треугольника с гипотенузой 25');
   await p.goto(BASE + '#game/no3');
+  await p.waitForSelector('[data-id="no"]');
   await p.click('[data-id="no"]'); await p.click('[data-m="3"]');
   ok((await p.textContent('[data-id="msg"]')).includes('противоречие'), 'x² + y² = 3: довод по модулю 3');
   await p.goto(BASE + '#game/yes5');
+  await p.waitForSelector('[data-id="yes"]');
   await p.click('[data-id="yes"]'); await p.fill('[data-id="x"]', '1'); await p.fill('[data-id="y"]', '2'); await p.click('[data-id="checkPt"]');
   ok((await p.textContent('[data-id="msg"]')).includes('Есть'), 'x² + y² = 5: точка (1; 2)');
   await p.goto(BASE + '#game');
+  await p.waitForSelector('.hero a');
   ok((await p.textContent('.stars')).includes('★ 12'), 'звёзды сохраняются: ' + await p.textContent('.stars'));
   await p.click('[data-level="uni"]'); await p.goto(BASE + '#game/cub6');
+  await p.waitForSelector('[data-id="dbl"]');
   for (const b of ['dbl', 'addP', 'dbl']) await p.click(`[data-id="${b}"]`);
   ok((await p.textContent('[data-id="state"]')).includes('= O'), 'y² = x³ + 1: 6P = O за три хода');
   await p.screenshot({ path: join(SHOTS, 'game-cubic.png') });
