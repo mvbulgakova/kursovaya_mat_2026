@@ -13,6 +13,7 @@ const FILES = [
   'js/app.js',
   'js/core.js',
   'js/tasks.js',
+  'js/levels.js',
   'js/util.js',
   'js/lib/qrcode.js',
   'js/lib/gl.js',
@@ -24,6 +25,7 @@ const FILES = [
   'js/sections/trainer.js',
   'js/sections/cubics.js',
   'js/sections/sphere.js',
+  'js/sections/game.js',
 ];
 
 self.addEventListener('install', e => {

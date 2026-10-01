@@ -6,6 +6,7 @@
  */
 import * as RP from '../js/core.js';
 import * as TK from '../js/tasks.js';
+import * as LV from '../js/levels.js';
 import { encode } from '../js/lib/qrcode.js';
 import jsQR from 'jsqr';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
@@ -292,6 +293,49 @@ console.log('9. Офлайн-режим: service worker знает все фай
   for (const f of files) ok(listed.has(f), `файл ${f} есть в sw.js`);
   for (const f of listed) if (f !== './') ok(files.includes(f), `файл ${f} из sw.js существует`);
   console.log(`   ${files.length} файлов`);
+}
+
+// ---------------------------------------------------------------- 10
+console.log('10. Игра: каждый уровень решается');
+{
+  for (const lv of LV.LEVELS) {
+    if (lv.type === 'arc') {
+      let best = null;
+      for (let q = 1; q <= 60 && !best; q++) for (let p = -8 * q; p <= 8 * q && !best; p++)
+        if (RP.gcd(p, q) === 1 && LV.scoreArc(lv, new Q(p, q))) best = new Q(p, q);
+      ok(best && LV.scoreArc(lv, best) === 3, `${lv.id}: решение на три звезды (${best})`);
+    }
+    if (lv.type === 'triple') {
+      const all = LV.triplesWith(lv);
+      ok(all.length >= 2 && all.every(([a, b, c]) => a * a + b * b === c * c), `${lv.id}: ${all.length} треугольников`);
+      ok(LV.scoreTriple(lv, all).stars === 3, `${lv.id}: все найдены — три звезды`);
+    }
+    if (lv.type === 'circle') {
+      const has = LV.sumOfTwoSquares(lv.n);
+      let found = false; // перебор X² + Y² = n·Z² подтверждает ответ
+      for (let Z = 1; Z <= 60 && !found; Z++) for (let X = 0; X * X <= lv.n * Z * Z; X++) {
+        const Y = Math.round(Math.sqrt(lv.n * Z * Z - X * X)); if (Y * Y + X * X === lv.n * Z * Z) { found = true; break; }
+      }
+      ok(found === has, `${lv.id}: ответ «${has ? 'есть' : 'нет'}» верен`);
+      if (!has) for (const m of LV.goodModuli(lv.n)) { // довод по модулю m действительно работает
+        const sq = [...new Set(Array.from({ length: m }, (_, k) => k * k % m))];
+        const z0 = m === 4 ? sq.filter(a => sq.some(b => (a + b) % 4 === lv.n % 4)).length === 0 : sq.filter(a => sq.includes((m - a) % m)).every(a => a === 0);
+        ok(z0, `${lv.id}: по модулю ${m} противоречие`);
+      }
+      ok(has || LV.goodModuli(lv.n).length > 0, `${lv.id}: есть подходящий модуль`);
+    }
+    if (lv.type === 'cubic') {
+      const E = LV.CUBICS[lv.cubic];
+      // проходим оптимальную цепочку и сверяем с быстрым вычислением kP
+      const path = []; for (let k = lv.k; k > 1; ) { if (k % 2 === 0) { path.unshift('dbl'); k /= 2; } else { path.unshift('add'); k -= 1; } }
+      let R = E.P, k = 1;
+      for (const st of path) { R = RP.addPoints(E, R, st === 'dbl' ? R : E.P).sum; k = st === 'dbl' ? 2 * k : k + 1; }
+      const want = RP.multiplesFast(E, lv.k)[lv.k - 1].pt;
+      ok(k === lv.k && (R.O ? want.O : R[0].eq(want[0]) && R[1].eq(want[1])), `${lv.id}: ${lv.k}P совпадает`);
+      ok(path.length <= LV.chainLength(lv.k) + 1, `${lv.id}: цепочка из ${path.length} ходов`);
+    }
+  }
+  console.log(`   ${LV.LEVELS.length} уровней`);
 }
 
 console.log(`\nПроверок: ${checks}, ошибок: ${failures}`);

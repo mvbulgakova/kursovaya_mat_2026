@@ -154,6 +154,37 @@ console.log('5. 3D-сфера');
   await p.context().close();
 }
 
+// 6. игра
+console.log('6. Игра');
+{
+  const p = await page(1200);
+  await p.goto(BASE + '#game');
+  ok((await p.$$('.hero a[aria-disabled]')).length > 0, 'дальние уровни закрыты');
+  await p.goto(BASE + '#game/arc1');
+  await p.fill('[data-id="p"]', '1'); await p.fill('[data-id="q"]', '2');
+  await p.click('[data-id="shoot"]'); await p.waitForTimeout(800);
+  ok((await p.textContent('[data-id="msg"]')).includes('Попадание'), 't = 1/2 попадает в первую дугу');
+  ok((await p.textContent('[data-id="winStars"]')) === '★★★', 'три звезды');
+  await p.screenshot({ path: join(SHOTS, 'game-arc.png') });
+  await p.goto(BASE + '#game/tri25');
+  for (const [a, b] of [[7, 24], [20, 15]]) { await p.fill('[data-id="a"]', String(a)); await p.fill('[data-id="b"]', String(b)); await p.click('[data-id="add"]'); }
+  ok((await p.textContent('[data-id="found"]')).includes('Найдено 2 из 2'), 'оба треугольника с гипотенузой 25');
+  await p.goto(BASE + '#game/no3');
+  await p.click('[data-id="no"]'); await p.click('[data-m="3"]');
+  ok((await p.textContent('[data-id="msg"]')).includes('противоречие'), 'x² + y² = 3: довод по модулю 3');
+  await p.goto(BASE + '#game/yes5');
+  await p.click('[data-id="yes"]'); await p.fill('[data-id="x"]', '1'); await p.fill('[data-id="y"]', '2'); await p.click('[data-id="checkPt"]');
+  ok((await p.textContent('[data-id="msg"]')).includes('Есть'), 'x² + y² = 5: точка (1; 2)');
+  await p.goto(BASE + '#game');
+  ok((await p.textContent('.stars')).includes('★ 12'), 'звёзды сохраняются: ' + await p.textContent('.stars'));
+  await p.click('[data-level="uni"]'); await p.goto(BASE + '#game/cub6');
+  for (const b of ['dbl', 'addP', 'dbl']) await p.click(`[data-id="${b}"]`);
+  ok((await p.textContent('[data-id="state"]')).includes('= O'), 'y² = x³ + 1: 6P = O за три хода');
+  await p.screenshot({ path: join(SHOTS, 'game-cubic.png') });
+  ok(!p.errors.length, 'нет ошибок в игре: ' + p.errors.join(' | '));
+  await p.context().close();
+}
+
 await browser.close();
 server.close();
 console.log(`\nПроверок: ${checks}, ошибок: ${failures}`);

@@ -14,8 +14,6 @@ const CARDS = [
   ['cubics', 'Кубики', null, 'Кривые третьего порядка: хорды, касательные, кратные точки и рост знаменателей.'],
 ];
 
-const READY = ['secants', 'triangles', 'trainer', 'sphere', 'cubics'];
-
 export default {
   id: 'home',
   title: () => 'Главная',
@@ -24,7 +22,7 @@ export default {
     ? 'Интерактивное приложение к курсовой работе «Рациональная параметризация конических сечений». Все вычисления — в точных дробях, без округления.'
     : 'Сколько существует прямоугольных треугольников с целыми сторонами и как найти их все? Ответ даёт одна прямая, которая вращается вокруг точки на окружности.'}</p>
   <div class="hero">
-    ${CARDS.filter(c => (L.uni || c[2]) && READY.includes(c[0])).map(([id, title, school, uni]) =>
+    ${CARDS.filter(c => L.uni || c[2]).map(([id, title, school, uni]) =>
       `<a href="#${id}"><b>${title}</b><span class="note">${L.uni ? uni : school}</span></a>`).join('')}
   </div>
   <div class="panel" style="margin-top:16px">
