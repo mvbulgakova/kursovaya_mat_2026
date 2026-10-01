@@ -1,11 +1,16 @@
 #!/usr/bin/env node
 /*
  * Проверка модели и всех числовых выкладок курсовой работы.
- * Запуск:  node model/test/verify.js
+ * Запуск:  node model/test/verify.mjs
  * Всё считается в точной рациональной арифметике, без округления.
  */
-'use strict';
-const RP = require('../core.js');
+import * as RP from '../js/core.js';
+import * as TK from '../js/tasks.js';
+import { encode } from '../js/lib/qrcode.js';
+import jsQR from 'jsqr';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { join, relative, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 const { Q, CONICS, CUBICS, secondPoint, slopes, addPoints, multiples, tripleFromPoint } = RP;
 
 let failures = 0, checks = 0;
@@ -193,11 +198,100 @@ console.log('6. Целые треугольники и задачи');
     ok(Math.abs(Math.sqrt(s * (s - t.a) * (s - t.b) * (s - t.c)) - t.S) < 1e-9, `героновский ${t.a},${t.b},${t.c}`);
   }
   for (const R0 of [5, 25, 65]) for (const [x, y] of RP.latticePoints(R0)) ok(x * x + y * y === R0 * R0, `целая точка на x²+y²=${R0}²`);
-  const types = Object.keys(RP.TASKS);
-  const W = RP.worksheet(types, 4, 100, 12345), W2 = RP.worksheet(types, 4, 100, 12345);
-  ok(JSON.stringify(W) === JSON.stringify(W2), 'один номер набора — одни и те же задачи');
-  ok(W.every(v => v.tasks.length === types.length), 'в каждом варианте все типы задач');
   console.log(`   ${R.length} прямоугольных и ${T120.length} несократимых треугольников с углом 120° проверены`);
+}
+
+// ---------------------------------------------------------------- 7
+console.log('7. Тренажёр: задачи, ответы, коды результата');
+{
+  const J = x => JSON.stringify(x, (k, v) => (typeof v === 'bigint' ? v.toString() : v));
+  const topics = TK.TOPIC_IDS;
+  // ответ пересчитываем заново по числам из текста условия — независимо от генератора
+  const nums = q => (q.match(/-?\d+/g) || []).map(Number);
+  const heronS = (a, b, c) => { const p = (a + b + c) / 2; return Math.sqrt(p * (p - a) * (p - b) * (p - c)); };
+  const expect = {
+    hyp: ([a, b]) => [Math.hypot(a, b)], leg: ([c, b]) => [Math.sqrt(c * c - b * b)],
+    area: ([c, a]) => [a * Math.sqrt(c * c - a * a) / 2], diag: ([a, b]) => [Math.hypot(a, b)],
+    dist: ([x1, y1, x2, y2]) => [Math.hypot(x2 - x1, y2 - y1)],
+    mid: ([x1, y1, x2, y2]) => [(x1 + x2) / 2, (y1 + y2) / 2, Math.hypot(x2 - x1, y2 - y1)],
+    cos120: ([a, b]) => [Math.sqrt(a * a + b * b + a * b)], cos60: ([a, b]) => [Math.sqrt(a * a + b * b - a * b)],
+    heron: ([a, b, c]) => [heronS(a, b, c)], height: ([a, b, c]) => [2 * heronS(a, b, c) / c],
+    box: ([a, b, c]) => [Math.sqrt(a * a + b * b + c * c)],
+    lattice: ([R2]) => { let k = 0; for (let x = -200; x <= 200; x++) for (let y = -200; y <= 200; y++) if (x * x + y * y === R2) k++; return [k]; },
+  };
+  let n = 0;
+  for (const N of [30, 100, 300]) for (let seed = 1; seed <= 6; seed++) for (let v = 1; v <= 8; v++) {
+    const tasks = TK.variant(seed, v, topics, N);
+    ok(tasks.length === topics.length, 'в варианте все темы');
+    ok(J(tasks) === J(TK.variant(seed, v, topics, N)), 'вариант воспроизводится');
+    for (const t of tasks) {
+      const want = expect[t.topic](nums(t.q).filter((x, i) => !(t.topic.startsWith('cos') && i === 2)));
+      ok(want.length === t.answers.length && want.every((w, j) => Math.abs(w - t.answers[j].value.toNumber()) < 1e-9),
+        `${t.topic}: ответ сходится с условием (${t.q})`);
+      const inputs = t.answers.map(a => TK.showQ(a.value));
+      ok(TK.grade([t], [inputs])[0].every(Boolean), `${t.topic}: напечатанный ответ принимается`);
+      n++;
+    }
+  }
+  console.log(`   ${n} задач: ответы пересчитаны по условию`);
+  ok(J(TK.variant(1, 1, topics, 100)) !== J(TK.variant(1, 2, topics, 100)), 'варианты различаются');
+  const P = TK.parseAnswer;
+  for (const [s, q] of [['12', '12'], ['12,5', '25/2'], ['12.5', '25/2'], ['25/2', '25/2'], ['12 1/2', '25/2'], ['−3', '-3'], [' 7 ', '7'], ['0,25', '1/4']])
+    ok(P(s)?.eq(q), `разбор ответа «${s}»`);
+  for (const s of ['', 'abc', '1/0', '1,2,3', '5 см']) ok(P(s) === null, `«${s}» не число`);
+  let codes = 0;
+  for (let v = 1; v <= 40; v++) for (let sc = 0; sc <= 12; sc += 3) for (const att of [1, 3, 9]) {
+    const c = TK.resultCode(77, topics, 100, v, sc, 12, att);
+    const r = TK.readCode(c, 77, topics, 100);
+    ok(r && r.v === v && r.score === sc && r.total === 12 && r.attempt === Math.min(att, 7), `код ${c} читается`);
+    ok(TK.readCode(c, 78, topics, 100) === null, 'код чужого набора отклоняется');
+    ok(TK.readCode(c.toLowerCase().replace('-', ' '), 77, topics, 100) !== null, 'регистр и пробелы не важны');
+    codes++;
+  }
+  // одна ошибочная буква почти всегда ловится контрольной суммой
+  let caught = 0, tries = 0;
+  const ALPH = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+  for (let v = 1; v <= 20; v++) {
+    const c = TK.resultCode(5, topics, 100, v, 7, 12, 1).replace('-', '');
+    for (let i = 0; i < 7; i++) for (const ch of ALPH) if (ch !== c[i]) {
+      tries++; if (TK.readCode(c.slice(0, i) + ch + c.slice(i + 1), 5, topics, 100) === null) caught++;
+    }
+  }
+  ok(caught / tries > 0.99, 'опечатки в коде отлавливаются');
+  console.log(`   ${codes} кодов результата; опечаток поймано ${caught} из ${tries}`);
+}
+
+// ---------------------------------------------------------------- 8
+console.log('8. QR-коды (проверка независимым декодером jsQR)');
+{
+  const decode = text => {
+    const { size, modules } = encode(text), s = 5, q = 4, W = (size + 2 * q) * s;
+    const px = new Uint8ClampedArray(W * W * 4).fill(255);
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) if (modules[y][x])
+      for (let dy = 0; dy < s; dy++) for (let dx = 0; dx < s; dx++) {
+        const i = (((y + q) * s + dy) * W + (x + q) * s + dx) * 4; px[i] = px[i + 1] = px[i + 2] = 0;
+      }
+    return jsQR(px, W, W)?.data;
+  };
+  const versions = new Set();
+  const samples = ['https://mvbulgakova.github.io/kursovaya_mat_2026/#check/4821/17/' + TK.TOPIC_IDS.join('-') + '/300',
+    'Вариант 1 · √2 ≈ 1,41', 'A'];
+  for (let L = 2; L <= 330; L += 7) samples.push(Array.from({ length: L }, (_, i) => String.fromCharCode(33 + (i * 13 + L) % 90)).join(''));
+  for (const t of samples) { ok(decode(t) === t, `QR «${t.slice(0, 30)}…»`); versions.add(encode(t).version); }
+  console.log(`   ${samples.length} строк декодированы без ошибок, версии ${[...versions].sort((a, b) => a - b).join(', ')}`);
+}
+
+// ---------------------------------------------------------------- 9
+console.log('9. Офлайн-режим: service worker знает все файлы');
+{
+  const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+  const sw = readFileSync(join(root, 'sw.js'), 'utf8');
+  const listed = new Set([...sw.matchAll(/^\s+'([^']+)',$/gm)].map(m => m[1]));
+  const walk = d => readdirSync(d).flatMap(f => { const p = join(d, f); return statSync(p).isDirectory() ? walk(p) : [p]; });
+  const files = ['index.html', 'manifest.webmanifest', ...['css', 'icons', 'js'].flatMap(d => walk(join(root, d)).map(p => relative(root, p)))];
+  for (const f of files) ok(listed.has(f), `файл ${f} есть в sw.js`);
+  for (const f of listed) if (f !== './') ok(files.includes(f), `файл ${f} из sw.js существует`);
+  console.log(`   ${files.length} файлов`);
 }
 
 console.log(`\nПроверок: ${checks}, ошибок: ${failures}`);
